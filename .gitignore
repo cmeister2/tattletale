@@ -1,6 +1,16 @@
+# Compiled files
 *.pyc
 __pycache__
+
+# PyCharm
 /.idea/
+
+# Virtual environment in venv
 /venv/
+
+# Package files
 /*.egg-info/
 /.eggs/
+
+# Tox testing
+/.tox/
