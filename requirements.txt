@@ -1,2 +1,9 @@
+# Main dependencies
+SQLAlchemy
+sqlalchemy-utils
+PyMySQL
+
+# Test dependencies
 pytest
 tox
+coverage

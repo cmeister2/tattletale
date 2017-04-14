@@ -14,3 +14,12 @@ __pycache__
 
 # Tox testing
 /.tox/
+
+# Docker database
+/.database/
+
+# Cache
+/.cache
+
+# Coverage file
+/.coverage

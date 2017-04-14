@@ -1,0 +1,16 @@
+version: '2'
+services:
+  interactive:
+    build: .
+    command: bash
+    volumes:
+    - .:/code
+    depends_on:
+    - mariadb
+
+  mariadb:
+      image: mariadb
+      environment:
+       - MYSQL_ROOT_PASSWORD=dockerroot
+      volumes:
+       - .database:/var/lib/mysql
