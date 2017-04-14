@@ -31,10 +31,15 @@ class TestDatabase(object):
         log.debug("Return DNS CNAME %s (was created? %s)", dnsc, created)
         return dnsc
 
-    def get_or_create_example_ip_address(self, log, database, dnsa):
+    def get_or_create_example_ip_address(self, log, database):
         ip_address, created = self.get_or_create(log, database, tdmodels.IpAddress, ip_address="1.2.3.4")
         log.debug("Return IpAddress %s (was created? %s)", ip_address, created)
         return ip_address
+
+    def get_or_create_example_portscan(self, log, database, ip_address):
+        port_scan, created = self.get_or_create(log, database, tdmodels.PortScanResult, ip_address=ip_address)
+        log.debug("Return Port Scan %s (was created? %s)", port_scan, created)
+        return port_scan
 
     def test_fqdn(self, log, database):
         # Create an FQDN.
@@ -76,15 +81,14 @@ class TestDatabase(object):
         dnsa = self.get_or_create_example_dnsa(log, database, fqdn)
 
         # Query to ensure there's an entry in the database.
-        matches = database.session.query(tdmodels.DnsAResult).filter_by(fqdn=fqdn).all()
+        query = database.session.query(tdmodels.DnsAResult).filter_by(fqdn=fqdn)
+        matches = query.all()
         log.info("Database matches for %s: %s", fqdn, matches)
         assert (len(matches) == 1)
 
         # Delete the FQDN. This should delete the DNS A result due to cascading.
         database.session.delete(fqdn)
-
-        dnsa_count = database.session.query(tdmodels.DnsAResult).filter_by(fqdn=fqdn).count()
-        assert (dnsa_count == 0)
+        assert (query.count() == 0)
         log.debug("DNS A results are all deleted")
 
     def test_ip_address(self, log, database):
@@ -95,7 +99,7 @@ class TestDatabase(object):
         dnsa = self.get_or_create_example_dnsa(log, database, fqdn)
 
         # Create an IP address
-        ip_address = self.get_or_create_example_ip_address(log, database, dnsa)
+        ip_address = self.get_or_create_example_ip_address(log, database)
 
         # Link the IP address to the DNS report.
         ip_address.a_results.append(dnsa)
@@ -144,3 +148,26 @@ class TestDatabase(object):
         database.session.delete(fqdn)
         dnsc_count = database.session.query(tdmodels.DnsCnameResult).filter_by(fqdn=fqdn).count()
         assert (dnsc_count == 0)
+
+        # Delete the target FQDN
+        database.session.delete(target_fqdn)
+
+
+    def test_port_scan(self, log, database):
+        # Create an IP address
+        ip_address = self.get_or_create_example_ip_address(log, database)
+        assert (ip_address.port_scan is None)
+
+        # Create a Port Scan
+        port_scan = self.get_or_create_example_portscan(log, database, ip_address)
+        assert(ip_address.port_scan == port_scan)
+
+        # Query to ensure there's an entry in the database.
+        query = database.session.query(tdmodels.PortScanResult).filter_by(ip_address=ip_address)
+        assert (query.count() == 1)
+
+        # Delete the IpAddress. This should delete the port scan result due to cascading.
+        database.session.delete(ip_address)
+
+        assert (query.count() == 0)
+        log.debug("Portscan results are all deleted")

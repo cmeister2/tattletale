@@ -26,7 +26,7 @@ class Fqdn(Base):
 
 dns_ip_assoc = Table('dns_ip_assoc', Base.metadata,
     Column('dns_id', Integer, ForeignKey('dnsaresults.id')),
-    Column('ipaddress_id', Integer, ForeignKey('ipaddress.id'))
+    Column('ipaddress_id', Integer, ForeignKey('ipaddresses.id'))
 )
 
 
@@ -51,7 +51,7 @@ class IpAddress(Base):
     """
     IP address retrieved from a DNS query
     """
-    __tablename__ = "ipaddress"
+    __tablename__ = "ipaddresses"
     id = Column(Integer, primary_key=True)
     ip_address = Column(String(100), unique=True)
 
@@ -60,6 +60,8 @@ class IpAddress(Base):
                              secondary=dns_ip_assoc,
                              back_populates="addresses")
 
+    # May link to a port scan result
+    port_scan = relationship("PortScanResult", back_populates="ip_address", uselist=False, cascade="all,delete-orphan")
 
 cname_fqdn_assoc = Table('cname_fqdn_assoc', Base.metadata,
     Column('cname_id', Integer, ForeignKey('dnscnameresults.id'), unique=True),
@@ -83,3 +85,17 @@ class DnsCnameResult(Base):
                                secondary=cname_fqdn_assoc,
                                back_populates="cnames",
                                uselist=False)
+
+
+class PortScanResult(Base):
+    """
+    Results from doing a port scan on an IP address
+    """
+    __tablename__ = "portscanresults"
+    id = Column(Integer, primary_key=True)
+    ip_address_id = Column(Integer, ForeignKey("ipaddresses.id"), unique=True)
+
+    # Linked to a parent IP address.
+    ip_address = relationship("IpAddress", back_populates="port_scan")
+
+    # # Linked to potentially many Port results
