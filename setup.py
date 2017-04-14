@@ -23,7 +23,11 @@ setup(
     author_email="cmeister2@gmail.com",
     license="MIT",
     packages=["tattletale"],
-    install_requires=[],
+    install_requires=[
+        "SQLAlchemy",
+        "sqlalchemy-utils",
+        "PyMySQL",
+    ],
     include_package_data=True,
     zip_safe=False,
     setup_requires=["pytest-runner"],
