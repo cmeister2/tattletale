@@ -98,4 +98,19 @@ class PortScanResult(Base):
     # Linked to a parent IP address.
     ip_address = relationship("IpAddress", back_populates="port_scan")
 
-    # # Linked to potentially many Port results
+    # Linked to potentially many PortInfo results
+    ports = relationship("PortInfo", back_populates="port_scan", cascade="all,delete-orphan")
+
+
+class PortInfo(Base):
+    """
+    Accessible port on an IP address
+    """
+    __tablename__ = "portinfos"
+    id = Column(Integer, primary_key=True)
+    port_scan_id = Column(Integer, ForeignKey("portscanresults.id"))
+    port = Column(Integer)
+    info = Column(String(255))
+
+    # Linked to a parent port scan.
+    port_scan = relationship("PortScanResult", back_populates="ports")

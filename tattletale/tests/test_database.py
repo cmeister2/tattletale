@@ -3,7 +3,8 @@ import sqlalchemy
 
 
 class TestDatabase(object):
-    def get_or_create(self, log, database, model, defaults=None, **kwargs):
+    @staticmethod
+    def get_or_create(log, database, model, defaults=None, **kwargs):
         instance = database.session.query(model).filter_by(**kwargs).first()
         if instance:
             return instance, False
@@ -41,6 +42,16 @@ class TestDatabase(object):
         log.debug("Return Port Scan %s (was created? %s)", port_scan, created)
         return port_scan
 
+    def get_or_create_example_portinfo(self, log, database, port_scan):
+        port_info, created = self.get_or_create(log,
+                                                database,
+                                                tdmodels.PortInfo,
+                                                port_scan=port_scan,
+                                                port=80,
+                                                info="http/apache")
+        log.debug("Return Port Info %s (was created? %s)", port_info, created)
+        return port_info
+
     def test_fqdn(self, log, database):
         # Create an FQDN.
         fqdn = self.get_or_create_example_fqdn(log, database)
@@ -76,9 +87,11 @@ class TestDatabase(object):
     def test_dns_a_result(self, log, database):
         # Create an FQDN.
         fqdn = self.get_or_create_example_fqdn(log, database)
+        assert(fqdn.a_result is None)
 
         # Create a DNS A result
         dnsa = self.get_or_create_example_dnsa(log, database, fqdn)
+        assert(fqdn.a_result == dnsa)
 
         # Query to ensure there's an entry in the database.
         query = database.session.query(tdmodels.DnsAResult).filter_by(fqdn=fqdn)
@@ -152,7 +165,6 @@ class TestDatabase(object):
         # Delete the target FQDN
         database.session.delete(target_fqdn)
 
-
     def test_port_scan(self, log, database):
         # Create an IP address
         ip_address = self.get_or_create_example_ip_address(log, database)
@@ -171,3 +183,39 @@ class TestDatabase(object):
 
         assert (query.count() == 0)
         log.debug("Portscan results are all deleted")
+
+    def test_portinfo(self, log, database):
+        # Create an IP address
+        ip_address = self.get_or_create_example_ip_address(log, database)
+        assert (ip_address.port_scan is None)
+
+        # Create a Port Scan
+        port_scan = self.get_or_create_example_portscan(log, database, ip_address)
+        assert(ip_address.port_scan == port_scan)
+
+        # Create a PortInfo
+        port_info = self.get_or_create_example_portinfo(log, database, port_scan)
+
+        # Query to ensure there's an entry in the database.
+        query = database.session.query(tdmodels.PortInfo).filter_by(port_scan=port_scan)
+        assert (query.count() == 1)
+        assert (len(port_scan.ports) == 1)
+        assert (port_info in port_scan.ports)
+
+        # Create another port
+        port_info2, created = self.get_or_create(log,
+                                                 database,
+                                                 tdmodels.PortInfo,
+                                                 port_scan=port_scan,
+                                                 port=443,
+                                                 info="https/apache")
+        database.session.refresh(port_scan)
+        assert (query.count() == 2)
+        assert (len(port_scan.ports) == 2)
+        assert (port_info2 in port_scan.ports)
+
+        # Delete the IpAddress. This should delete the port scan result and port info objects due to cascading.
+        database.session.delete(ip_address)
+
+        assert (query.count() == 0)
+        log.debug("Port info results are all deleted")
