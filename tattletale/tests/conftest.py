@@ -19,7 +19,7 @@ def log():
 class TestDatabase(object):
     def __init__(self):
         # Is there an existing database?
-        if not suf.database_exists(tt_config.CONNECTION_STRING):
+        if not suf.database_exists(tt_config.CONNECTION_STRING):  # pragma: no cover
             print("Creating database: %s", tt_config.CONNECTION_STRING)
             suf.create_database(tt_config.CONNECTION_STRING)
 
