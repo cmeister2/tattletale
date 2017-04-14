@@ -7,3 +7,4 @@ PyMySQL
 pytest
 tox
 coverage
+python-coveralls
