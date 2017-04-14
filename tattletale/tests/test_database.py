@@ -18,13 +18,18 @@ class TestDatabase(object):
 
     def get_or_create_example_fqdn(self, log, database):
         fqdn, created = self.get_or_create(log, database, tdmodels.Fqdn, fqdn="www.example.com")
-        log.debug("Return Fqdn %s Created? %s", fqdn, created)
+        log.debug("Return Fqdn %s (was created? %s)", fqdn, created)
         return fqdn
 
     def get_or_create_example_dnsa(self, log, database, fqdn):
         dnsa, created = self.get_or_create(log, database, tdmodels.DnsAResult, fqdn=fqdn)
-        log.debug("Return DNS A %s Created? %s", dnsa, created)
+        log.debug("Return DNS A %s (was created? %s)", dnsa, created)
         return dnsa
+
+    def get_or_create_example_ip_address(self, log, database, dnsa):
+        ip_address, created = self.get_or_create(log, database, tdmodels.IpAddress, ip_address="1.2.3.4")
+        log.debug("Return IpAddress %s (was created? %s)", ip_address, created)
+        return ip_address
 
     def test_fqdn(self, log, database):
         # Create an FQDN.
@@ -76,3 +81,36 @@ class TestDatabase(object):
         dnsa_count = database.session.query(tdmodels.DnsAResult).filter_by(fqdn=fqdn).count()
         assert(dnsa_count == 0)
         log.debug("DNS A results are all deleted")
+
+    def test_ip_address(self, log, database):
+        # Create an FQDN.
+        fqdn = self.get_or_create_example_fqdn(log, database)
+
+        # Create a DNS A result
+        dnsa = self.get_or_create_example_dnsa(log, database, fqdn)
+
+        # Create an IP address
+        ip_address = self.get_or_create_example_ip_address(log, database, dnsa)
+
+        # Link the IP address to the DNS report.
+        ip_address.a_results.append(dnsa)
+
+        # Check that the DNS report now has a matching IP address
+        assert(len(dnsa.addresses) == 1)
+        assert(dnsa.addresses[0] == ip_address)
+
+        # Delete the DNS A result. This shouldn't delete the IP address - other things might depend on that IP address.
+        database.session.delete(dnsa)
+
+        # Update IpAddress so it's up to date.
+        database.session.refresh(ip_address)
+
+        # Query to ensure there's an IpAddress entry in the database.
+        assert(database.session.query(tdmodels.IpAddress).filter_by(ip_address=ip_address.ip_address).count() == 1)
+
+        # Ensure the results for the IP address is now empty.  Theoretically this means the IP address is orphaned.
+        assert(len(ip_address.a_results) == 0)
+
+        # Cleanup
+        database.session.delete(fqdn)
+        database.session.delete(ip_address)
