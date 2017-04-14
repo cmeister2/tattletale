@@ -47,7 +47,7 @@ class TestDatabase(object):
             database.session.rollback()
 
         # The fqdn that we added won't have a DNS A result because that hasn't been created yet. Check that.
-        fqdn = matches[0]
+        fqdn = self.get_or_create_example_fqdn(log, database)
         log.debug("FQDN A result: %s", fqdn.a_result)
         assert(fqdn.a_result is None)
 
