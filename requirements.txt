@@ -2,6 +2,7 @@
 SQLAlchemy
 sqlalchemy-utils
 PyMySQL
+pyyaml
 
 # Test dependencies
 pytest
