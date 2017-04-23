@@ -37,3 +37,5 @@ class Workspace(object):
 
         # Do a version check on the database
         self.version = tdvers.get_version(self.engine, self.session)
+        log.debug("Current workspace version is %d", self.version)
+        
