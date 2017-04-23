@@ -36,6 +36,13 @@ class Configuration(object):
         if self.data is None:
             self.data = {}
 
+    # Magic methods for accessing data
+    def __getitem__(self, item):
+        return self.data.get(item)
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
 
 class NoConfigFileException(Exception):
     pass

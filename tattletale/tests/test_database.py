@@ -1,54 +1,41 @@
-import tattletale.database.models as tdmodels
 import sqlalchemy
+import tattletale.database.models as tdmodels
+import tattletale.database.version as tdversion
+from tattletale.database.utility import get_or_create
 
 
 class TestDatabase(object):
-    @staticmethod
-    def get_or_create(log, database, model, defaults=None, **kwargs):
-        instance = database.session.query(model).filter_by(**kwargs).first()
-        if instance:
-            return instance, False
-        else:
-            params = dict(
-                (k, v) for k, v in kwargs.items() if not isinstance(v, sqlalchemy.sql.expression.ClauseElement))
-            params.update(defaults or {})
-            instance = model(**params)
-            database.session.add(instance)
-            database.session.commit()
-            return instance, True
-
     def get_or_create_example_fqdn(self, log, database):
-        fqdn, created = self.get_or_create(log, database, tdmodels.Fqdn, fqdn="www.example.com")
+        fqdn, created = get_or_create(database.session, tdmodels.Fqdn, fqdn="www.example.com")
         log.debug("Return Fqdn %s (was created? %s)", fqdn, created)
         return fqdn
 
     def get_or_create_example_dnsa(self, log, database, fqdn):
-        dnsa, created = self.get_or_create(log, database, tdmodels.DnsAResult, fqdn=fqdn)
+        dnsa, created = get_or_create(database.session, tdmodels.DnsAResult, fqdn=fqdn)
         log.debug("Return DNS A %s (was created? %s)", dnsa, created)
         return dnsa
 
     def get_or_create_example_dnsc(self, log, database, fqdn):
-        dnsc, created = self.get_or_create(log, database, tdmodels.DnsCnameResult, fqdn=fqdn)
+        dnsc, created = get_or_create(database.session, tdmodels.DnsCnameResult, fqdn=fqdn)
         log.debug("Return DNS CNAME %s (was created? %s)", dnsc, created)
         return dnsc
 
     def get_or_create_example_ip_address(self, log, database):
-        ip_address, created = self.get_or_create(log, database, tdmodels.IpAddress, ip_address="1.2.3.4")
+        ip_address, created = get_or_create(database.session, tdmodels.IpAddress, ip_address="1.2.3.4")
         log.debug("Return IpAddress %s (was created? %s)", ip_address, created)
         return ip_address
 
     def get_or_create_example_portscan(self, log, database, ip_address):
-        port_scan, created = self.get_or_create(log, database, tdmodels.PortScanResult, ip_address=ip_address)
+        port_scan, created = get_or_create(database.session, tdmodels.PortScanResult, ip_address=ip_address)
         log.debug("Return Port Scan %s (was created? %s)", port_scan, created)
         return port_scan
 
     def get_or_create_example_portinfo(self, log, database, port_scan):
-        port_info, created = self.get_or_create(log,
-                                                database,
-                                                tdmodels.PortInfo,
-                                                port_scan=port_scan,
-                                                port=80,
-                                                info="http/apache")
+        port_info, created = get_or_create(database.session,
+                                           tdmodels.PortInfo,
+                                           port_scan=port_scan,
+                                           port=80,
+                                           info="http/apache")
         log.debug("Return Port Info %s (was created? %s)", port_info, created)
         return port_info
 
@@ -145,7 +132,7 @@ class TestDatabase(object):
         dnsc = self.get_or_create_example_dnsc(log, database, fqdn)
 
         # Create an FQDN that's the target of the DNS CNAME query.
-        target_fqdn, _created = self.get_or_create(log, database, tdmodels.Fqdn, fqdn="target.example.com")
+        target_fqdn, _created = get_or_create(database.session, tdmodels.Fqdn, fqdn="target.example.com")
 
         # Link the DNS CNAME to the target FQDN
         target_fqdn.cnames.append(dnsc)
@@ -203,12 +190,11 @@ class TestDatabase(object):
         assert (port_info in port_scan.ports)
 
         # Create another port
-        port_info2, created = self.get_or_create(log,
-                                                 database,
-                                                 tdmodels.PortInfo,
-                                                 port_scan=port_scan,
-                                                 port=443,
-                                                 info="https/apache")
+        port_info2, created = get_or_create(database.session,
+                                            tdmodels.PortInfo,
+                                            port_scan=port_scan,
+                                            port=443,
+                                            info="https/apache")
         database.session.refresh(port_scan)
         assert (query.count() == 2)
         assert (len(port_scan.ports) == 2)
@@ -219,3 +205,8 @@ class TestDatabase(object):
 
         assert (query.count() == 0)
         log.debug("Port info results are all deleted")
+
+    def test_version(self, log, database):
+        # Get the current workspace version
+        version = tdversion.get_version(database.engine, database.session)
+        log.debug("Current workspace version: %d", version)
