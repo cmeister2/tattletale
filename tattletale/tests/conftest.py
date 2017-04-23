@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 import sqlalchemy_utils.functions as suf
 from tattletale.database.models import Base
 from tattletale.core.configuration import Configuration
+from tattletale.database.utility import connection_string_for_workspace
 
 
 @pytest.fixture(scope="session")
@@ -21,7 +22,7 @@ class TestDatabase(object):
     def __init__(self):
         test_dir = os.path.dirname(__file__)
         test_config = Configuration(os.path.join(test_dir, "test_config.yml"))
-        connection_string = CONNECTION_STRING_MAP[test_config["database_type"]]
+        connection_string = connection_string_for_workspace(test_config["database_type"], "test", {})
 
         # Is there an existing database?
         if not suf.database_exists(connection_string):  # pragma: no cover
@@ -43,6 +44,7 @@ def database():
     return TestDatabase()
 
 
-CONNECTION_STRING_MAP = {
-    "sqlite_memory": "sqlite://"
-}
+@pytest.fixture(scope="session")
+def test_config_path():
+    test_dir = os.path.dirname(__file__)
+    return os.path.join(test_dir, "test_config.yml")
