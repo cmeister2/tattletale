@@ -27,6 +27,7 @@ setup(
         "SQLAlchemy",
         "sqlalchemy-utils",
         "PyMySQL",
+        "pyyaml",
     ],
     include_package_data=True,
     zip_safe=False,
